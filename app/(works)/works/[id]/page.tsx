@@ -111,6 +111,7 @@ export default function WorkDetailPage() {
     totalProfit: 0,
     profitMargin: 0,
   });
+  const [profitLoading, setProfitLoading] = useState(true);
 
   console.log(generalWorkersFromDB)
 
@@ -182,6 +183,7 @@ export default function WorkDetailPage() {
 
             // Load profit calculation
             try {
+              setProfitLoading(true);
               const workItems = ((workData.workItems as Record<string, unknown>[]) || []).map(
                 (item: Record<string, unknown>) => ({
                   ...item,
@@ -213,6 +215,8 @@ export default function WorkDetailPage() {
                 totalProfit: 0,
                 profitMargin: 0,
               });
+            } finally {
+              setProfitLoading(false);
             }
           } catch (err) {
             console.error("❌ [WORKITEMS] Error loading work items:", err);
@@ -937,7 +941,7 @@ export default function WorkDetailPage() {
               <h3 className="font-semibold text-gray-600">
                 Profitráta elemzés
               </h3>
-              {dynamicProfit.totalCost > 0 && (
+              {!profitLoading && dynamicProfit.totalCost > 0 && (
                 <div
                   className={`text-sm font-medium px-3 py-1 rounded-full ${
                     dynamicProfit.totalRevenue > dynamicProfit.totalCost
@@ -954,47 +958,71 @@ export default function WorkDetailPage() {
                 </div>
               )}
             </div>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
-              <div className="bg-blue-50 p-3 rounded-lg">
-                <div className="text-blue-600 font-medium">Bevétel</div>
-                <div className="text-lg font-bold text-blue-800">
-                  {dynamicProfit.totalRevenue.toLocaleString("hu-HU")} Ft
-                </div>
+            {profitLoading ? (
+              <div className="flex items-center justify-center py-8">
+                <svg
+                  className="w-8 h-8 animate-spin text-gray-400"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                >
+                  <circle
+                    className="opacity-25"
+                    cx="12"
+                    cy="12"
+                    r="10"
+                    stroke="currentColor"
+                    strokeWidth="4"
+                  ></circle>
+                  <path
+                    className="opacity-75"
+                    fill="currentColor"
+                    d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                  ></path>
+                </svg>
               </div>
-              <div className="bg-red-50 p-3 rounded-lg">
-                <div className="text-red-600 font-medium">Költség</div>
-                <div className="text-lg font-bold text-red-800">
-                  {dynamicProfit.totalCost.toLocaleString("hu-HU")} Ft
+            ) : (
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-sm">
+                <div className="bg-blue-50 p-3 rounded-lg">
+                  <div className="text-blue-600 font-medium">Bevétel</div>
+                  <div className="text-lg font-bold text-blue-800">
+                    {dynamicProfit.totalRevenue.toLocaleString("hu-HU")} Ft
+                  </div>
                 </div>
-              </div>
-              <div
-                className={`p-3 rounded-lg ${
-                  dynamicProfit.totalProfit >= 0
-                    ? "bg-green-50"
-                    : "bg-orange-50"
-                }`}
-              >
+                <div className="bg-red-50 p-3 rounded-lg">
+                  <div className="text-red-600 font-medium">Költség</div>
+                  <div className="text-lg font-bold text-red-800">
+                    {dynamicProfit.totalCost.toLocaleString("hu-HU")} Ft
+                  </div>
+                </div>
                 <div
-                  className={`font-medium ${
+                  className={`p-3 rounded-lg ${
                     dynamicProfit.totalProfit >= 0
-                      ? "text-green-600"
-                      : "text-orange-600"
+                      ? "bg-green-50"
+                      : "bg-orange-50"
                   }`}
                 >
-                  Profit
-                </div>
-                <div
-                  className={`text-lg font-bold ${
-                    dynamicProfit.totalProfit >= 0
-                      ? "text-green-800"
-                      : "text-orange-800"
-                  }`}
-                >
-                  {dynamicProfit.totalProfit >= 0 ? "+" : ""}
-                  {dynamicProfit.totalProfit.toLocaleString("hu-HU")} Ft
+                  <div
+                    className={`font-medium ${
+                      dynamicProfit.totalProfit >= 0
+                        ? "text-green-600"
+                        : "text-orange-600"
+                    }`}
+                  >
+                    Profit
+                  </div>
+                  <div
+                    className={`text-lg font-bold ${
+                      dynamicProfit.totalProfit >= 0
+                        ? "text-green-800"
+                        : "text-orange-800"
+                    }`}
+                  >
+                    {dynamicProfit.totalProfit >= 0 ? "+" : ""}
+                    {dynamicProfit.totalProfit.toLocaleString("hu-HU")} Ft
+                  </div>
                 </div>
               </div>
-            </div>
+            )}
           </div>
         )}
 
