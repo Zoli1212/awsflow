@@ -166,11 +166,6 @@ export default function MaterialPriceIndicator({
 
   // Price indicator renderer
   const renderPriceIndicator = () => {
-    // Ha nincs anyagköltség (materialUnitPrice === 0 vagy null), ne jelenjen meg semmi
-    if (!materialUnitPrice || materialUnitPrice === 0) {
-      return null;
-    }
-
     // Fetching state
     if (isFetchingPrice) {
       return (
@@ -262,20 +257,18 @@ export default function MaterialPriceIndicator({
 
   return (
     <div className="mt-2">
-      {/* Refresh icon - only spins when fetching */}
-      {materialUnitPrice && materialUnitPrice > 0 && (
-        <button
-          onClick={(e) => {
-            e.stopPropagation();
-            handleFetchPrice();
-          }}
-          className="mb-2 text-[#FF9900] hover:text-[#e68a00] transition-colors"
-          title="Árak frissítése"
-          disabled={isFetchingPrice}
-        >
-          <RefreshCw className={`h-4 w-4 ${isFetchingPrice ? 'animate-spin' : ''}`} />
-        </button>
-      )}
+      {/* Refresh icon - always visible, spins when fetching */}
+      <button
+        onClick={(e) => {
+          e.stopPropagation();
+          handleFetchPrice();
+        }}
+        className="mb-2 text-[#FF9900] hover:text-[#e68a00] transition-colors"
+        title="Árak frissítése"
+        disabled={isFetchingPrice}
+      >
+        <RefreshCw className={`h-4 w-4 ${isFetchingPrice ? 'animate-spin' : ''}`} />
+      </button>
 
       {/* Lekért ajánlatok (még nem mentve) */}
       {!isFetchingPrice && fetchedOffers.length > 0 ? (
@@ -341,7 +334,7 @@ export default function MaterialPriceIndicator({
                       target="_blank"
                       rel="noopener noreferrer"
                       onClick={(e) => e.stopPropagation()}
-                      className="inline-block mt-2 px-3 py-1.5 bg-[#FF9900] hover:bg-[#e68a00] text-white text-xs font-medium rounded transition-colors"
+                      className="inline-block mt-2 px-3 py-1.5 border-2 border-[#FF9900] text-[#FF9900] hover:bg-[#FF9900] hover:text-white text-xs font-medium rounded transition-colors"
                     >
                       🔗 Termék megtekintése
                     </a>
