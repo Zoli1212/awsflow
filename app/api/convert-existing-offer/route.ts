@@ -82,8 +82,11 @@ Az eredménynek JSON formátumban kell lennie az alábbi struktúrával:
       "name": "Munka vagy anyag neve",
       "quantity": számadat,
       "unit": "mértékegység (pl. m2, db, óra)",
-      "unitPrice": egységár számban,
-      "totalPrice": összes ár számban,
+      "unitPrice": munkadíj egységár számban (ha csak 1 ár van, az legyen itt, materialUnitPrice=0),
+      "materialUnitPrice": anyagköltség egységár számban (ha nincs külön anyagár, akkor 0),
+      "workTotal": munkadíj összesen (quantity * unitPrice),
+      "materialTotal": anyagköltség összesen (quantity * materialUnitPrice),
+      "totalPrice": összes ár összesen (workTotal + materialTotal),
       "description": "Opcionális részletes leírás"
     }
   ],
@@ -99,7 +102,10 @@ FONTOS:
 - Ha nincs egységár vagy mennyiség, becsüld meg az adatokból
 - Ha találsz összesen árat, azt használd totalPrice-nak
 - A title legyen rövid és beszédes
-- Az offerSummary 1-2 mondatban foglalja össze mit tartalmaz az ajánlat`,
+- Az offerSummary 1-2 mondatban foglalja össze mit tartalmaz az ajánlat
+- KRITIKUS: Minden item-nél kötelező megadni: unitPrice, materialUnitPrice, workTotal, materialTotal, totalPrice
+- Ha az ajánlatban csak 1 ár van (nem különbözik munkadíj/anyagköltség), az unitPrice legyen az ár, materialUnitPrice=0
+- workTotal = quantity * unitPrice, materialTotal = quantity * materialUnitPrice, totalPrice = workTotal + materialTotal`,
         },
         {
           role: 'user',

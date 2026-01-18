@@ -17,6 +17,9 @@ interface ConvertOfferParams {
     unit: string;
     unitPrice: number;
     totalPrice: number;
+    materialUnitPrice?: number;
+    materialTotal?: number;
+    workTotal?: number;
     description?: string;
   }>;
   notes: string[];
