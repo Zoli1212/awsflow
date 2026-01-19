@@ -79,6 +79,16 @@ export async function convertExistingOfferToMyWork(params: ConvertOfferParams) {
     for (const item of params.items) {
       const cleanedTask = item.name.replace(/^\*+\s*/, "").trim();
 
+      // Round ALL price fields to integers
+      const roundedItem = {
+        ...item,
+        unitPrice: Math.round(item.unitPrice || 0),
+        materialUnitPrice: Math.round(item.materialUnitPrice || 0),
+        workTotal: Math.round(item.workTotal || 0),
+        materialTotal: Math.round(item.materialTotal || 0),
+        totalPrice: Math.round(item.totalPrice || 0),
+      };
+
       // Ellenőrizzük, hogy létezik-e már a TenantPriceList-ben
       const existingPrice = await prisma.tenantPriceList.findUnique({
         where: {
@@ -93,19 +103,19 @@ export async function convertExistingOfferToMyWork(params: ConvertOfferParams) {
         // Új tétel - jelöljük meg new: true flag-gel
         newItemNames.push(cleanedTask);
         itemsWithMarking.push({
-          ...item,
+          ...roundedItem,
           name: cleanedTask,
           new: true,
         });
         console.log(`  ├─ Új tétel: ${cleanedTask}`);
       } else {
         // Meglévő tétel - nem jelöljük
-        itemsWithMarking.push(item);
+        itemsWithMarking.push(roundedItem);
       }
     }
 
     console.log(
-      `  └─ ${newItemNames.length} új tétel találva ${params.items.length}-ból`
+      `  └─ ${newItemNames.length} új tétel találva ${params.items.length}-ból`,
     );
 
     console.log("\n💾 [STEP 4] Creating Offer with marked items...");
@@ -114,12 +124,25 @@ export async function convertExistingOfferToMyWork(params: ConvertOfferParams) {
     const notesArray = params.notes || [];
     if (newItemNames.length > 0) {
       notesArray.push(
-        "\n=== Új tételek (még nincsenek a vállalkozói árlistában) ==="
+        "\n=== Új tételek (még nincsenek a vállalkozói árlistában) ===",
       );
       newItemNames.forEach((name) => {
         notesArray.push(`- ${name}`);
       });
     }
+
+    // Calculate materialTotal and workTotal from items
+    let calculatedMaterialTotal = 0;
+    let calculatedWorkTotal = 0;
+
+    itemsWithMarking.forEach((item: any) => {
+      calculatedMaterialTotal += item.materialTotal || 0;
+      calculatedWorkTotal += item.workTotal || 0;
+    });
+
+    console.log(`  ├─ Calculated materialTotal: ${calculatedMaterialTotal}`);
+    console.log(`  ├─ Calculated workTotal: ${calculatedWorkTotal}`);
+    console.log(`  └─ Total: ${calculatedMaterialTotal + calculatedWorkTotal}`);
 
     const offer = await prisma.offer.create({
       data: {
@@ -128,6 +151,8 @@ export async function convertExistingOfferToMyWork(params: ConvertOfferParams) {
         requirementId: requirement.id,
         tenantEmail,
         totalPrice: params.totalPrice || 0,
+        materialTotal: calculatedMaterialTotal,
+        workTotal: calculatedWorkTotal,
         description: params.description || "",
         offerSummary: params.offerSummary || null,
         notes: notesArray.length > 0 ? notesArray.join("\n") : null,

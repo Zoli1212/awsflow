@@ -29,7 +29,7 @@ const OfferLetterEmailSender = dynamic(
     import(
       "@/app/(routes)/ai-tools/ai-offer-letter/[recordid]/_components/OfferLetterEmailSender"
     ),
-  { ssr: false }
+  { ssr: false },
 );
 import {
   FileText,
@@ -73,7 +73,7 @@ import SocialShareButtonsExcel from "./SocialShareButtonsExcel";
 function extractQuestions(
   description: string,
   updateCount?: number,
-  questionCount?: number
+  questionCount?: number,
 ): string[] {
   if (!description) return [];
 
@@ -89,7 +89,7 @@ function extractQuestions(
   // If yes, extract answered questions and filter them out
   const answeredQuestions = new Set<string>();
   const answersMatch = description.match(
-    /Válaszok a kérdésekre:([\s\S]*?)(?=\n\n|$)/
+    /Válaszok a kérdésekre:([\s\S]*?)(?=\n\n|$)/,
   );
 
   if (answersMatch) {
@@ -226,13 +226,18 @@ export function OfferDetailView({
       const items = Array.isArray(offer.items) ? offer.items : [];
       // Ensure all items have the required fields
 
+      console.log(
+        "[offer-detail-mobile] Raw items from DB:",
+        JSON.stringify(items, null, 2),
+      );
+
       const validatedItems = items.map((item, index) => {
         // Parse quantity and prices
         const quantity =
           parseFloat(String(item.quantity).replace(/[^\d.-]/g, "")) || 0;
         const materialUnitPrice =
           parseFloat(
-            String(item.materialUnitPrice || "0").replace(/[^\d.-]/g, "")
+            String(item.materialUnitPrice || "0").replace(/[^\d.-]/g, ""),
           ) || 0;
         const workUnitPrice =
           parseFloat(String(item.unitPrice || "0").replace(/[^\d.-]/g, "")) ||
@@ -241,6 +246,15 @@ export function OfferDetailView({
         // Calculate totals
         const materialTotal = quantity * materialUnitPrice;
         const workTotal = quantity * workUnitPrice;
+
+        console.log(`[offer-detail-mobile] Item ${index}: ${item.name}`);
+        console.log(
+          `  quantity: ${quantity}, workUnitPrice: ${workUnitPrice}, materialUnitPrice: ${materialUnitPrice}`,
+        );
+        console.log(
+          `  calculated workTotal: ${workTotal}, materialTotal: ${materialTotal}`,
+        );
+        console.log(`  item.totalPrice from DB: ${item.totalPrice}`);
 
         return {
           id: index, // Add unique id for each item
@@ -254,6 +268,12 @@ export function OfferDetailView({
           new: item.new || false, // Preserve the new field for custom items
         };
       });
+
+      console.log(
+        "[offer-detail-mobile] Validated items:",
+        JSON.stringify(validatedItems, null, 2),
+      );
+
       setEditableItems(validatedItems);
       // Store original items with their indices
       setOriginalItems(validatedItems);
@@ -283,9 +303,11 @@ export function OfferDetailView({
   const parseCurrency = (value: string | null | undefined): number => {
     if (!value) return 0;
     const stringValue = String(value);
+    // Remove everything except digits, dots, commas, and minus
+    // Then replace comma with dot for parseFloat
     const numericValue = stringValue
-      .replace(/[^0-9,-]+/g, "")
-      .replace(",", ".");
+      .replace(/[^0-9,.-]+/g, "") // Keep dots, commas, digits, and minus
+      .replace(",", "."); // Convert comma to dot for decimal
     return parseFloat(numericValue) || 0;
   };
 
@@ -296,7 +318,7 @@ export function OfferDetailView({
 
   // Format number with space as thousand separator
   const formatNumberWithSpace = (
-    value: string | number | null | undefined
+    value: string | number | null | undefined,
   ): string => {
     if (value === null || value === undefined) return "";
     const num =
@@ -350,7 +372,7 @@ export function OfferDetailView({
       unitPrice: newItemData.unitPrice,
       materialTotal: calculateTotal(
         newItemData.quantity,
-        newItemData.materialUnitPrice
+        newItemData.materialUnitPrice,
       ),
       workTotal: calculateTotal(newItemData.quantity, newItemData.unitPrice),
     };
@@ -362,7 +384,7 @@ export function OfferDetailView({
     try {
       const result = await updateOfferItems(
         parseInt(offer.id.toString()),
-        updatedItems
+        updatedItems,
       );
 
       if (result.success) {
@@ -413,7 +435,7 @@ export function OfferDetailView({
     try {
       const result = await updateOfferItems(
         parseInt(offer.id.toString()),
-        newItems
+        newItems,
       );
 
       if (result.success) {
@@ -453,7 +475,7 @@ export function OfferDetailView({
     if (["quantity", "materialUnitPrice", "unitPrice"].includes(field)) {
       const quantity = parseFloat(updatedItem.quantity) || 0;
       const materialUnitPrice = parseCurrency(
-        updatedItem.materialUnitPrice || "0"
+        updatedItem.materialUnitPrice || "0",
       );
       const workUnitPrice = parseCurrency(updatedItem.unitPrice || "0");
 
@@ -482,7 +504,7 @@ export function OfferDetailView({
 
       const result = await updateOfferItems(
         parseInt(offer.id.toString()),
-        newItems
+        newItems,
       );
 
       if (result.success) {
@@ -507,7 +529,7 @@ export function OfferDetailView({
             null, // technology - nem szükséges a modal-ból
             item.unit,
             laborCost,
-            materialCost
+            materialCost,
           );
 
           console.log("Vállalkozói szintű ár mentés eredménye:", priceResult);
@@ -515,7 +537,7 @@ export function OfferDetailView({
           if (!priceResult.success) {
             console.warn(
               "Vállalkozói szintű ár mentése sikertelen:",
-              priceResult.message
+              priceResult.message,
             );
             // Nem jelezzük hibát, mert az offer már mentve van
           } else {
@@ -539,7 +561,7 @@ export function OfferDetailView({
             null, // technology - nem szükséges a modal-ból
             item.unit,
             laborCost,
-            materialCost
+            materialCost,
           );
 
           console.log("Globális ár mentés eredménye:", globalPriceResult);
@@ -547,7 +569,7 @@ export function OfferDetailView({
           if (!globalPriceResult.success) {
             console.warn(
               "Globális ár mentése sikertelen:",
-              globalPriceResult.message
+              globalPriceResult.message,
             );
             // Nem jelezzük hibát, mert az offer már mentve van
           } else {
@@ -584,7 +606,7 @@ export function OfferDetailView({
       const { saveGlobalPrice } = await import("@/actions/offer-actions");
       const laborCost = parseCurrency(selectedCustomItem.unitPrice || "0");
       const materialCost = parseCurrency(
-        selectedCustomItem.materialUnitPrice || "0"
+        selectedCustomItem.materialUnitPrice || "0",
       );
 
       const result = await saveGlobalPrice(
@@ -593,26 +615,28 @@ export function OfferDetailView({
         "Egyedi", // technology
         selectedCustomItem.unit,
         laborCost,
-        materialCost
+        materialCost,
       );
 
       if (result.success) {
         // Update the item in the offer to set new: false
         const updatedItems = editableItems.map((item) =>
-          item.name === selectedCustomItem.name ? { ...item, new: false } : item
+          item.name === selectedCustomItem.name
+            ? { ...item, new: false }
+            : item,
         );
 
         // Save the updated items to the database
         const updateResult = await updateOfferItems(
           parseInt(offer.id.toString()),
-          updatedItems
+          updatedItems,
         );
 
         if (updateResult.success) {
           setEditableItems(updatedItems);
           setOriginalItems(updatedItems.map((item) => ({ ...item })));
           toast.success(
-            "Az egyedi tétel sikeresen mentve a globális árlistához!"
+            "Az egyedi tétel sikeresen mentve a globális árlistához!",
           );
         } else {
           toast.error("A tétel mentve, de az ajánlat frissítése sikertelen");
@@ -639,7 +663,7 @@ export function OfferDetailView({
   // Handle validUntil editing - trigger date input click
   const handleValidUntilEdit = () => {
     const dateInput = document.getElementById(
-      "validUntil-date-input"
+      "validUntil-date-input",
     ) as HTMLInputElement;
     if (dateInput) {
       // Try focus first, then click
@@ -661,7 +685,7 @@ export function OfferDetailView({
   };
 
   const handleValidUntilChange = async (
-    e: React.ChangeEvent<HTMLInputElement>
+    e: React.ChangeEvent<HTMLInputElement>,
   ) => {
     const value = e.target.value;
     if (!value) return;
@@ -813,7 +837,7 @@ export function OfferDetailView({
     } catch (error) {
       console.error("❌ Error refining items:", error);
       toast.error(
-        (error as Error).message || "Hiba történt a pontosítás során"
+        (error as Error).message || "Hiba történt a pontosítás során",
       );
     } finally {
       setIsRefining(false);
@@ -861,7 +885,7 @@ export function OfferDetailView({
     } catch (error) {
       console.error("❌ Error supplementing offer:", error);
       toast.error(
-        (error as Error).message || "Hiba történt a kiegészítés során"
+        (error as Error).message || "Hiba történt a kiegészítés során",
       );
     } finally {
       setIsSupplementing(false);
@@ -870,19 +894,30 @@ export function OfferDetailView({
 
   // Calculate totals
   const calculateTotals = useCallback(() => {
-    return editableItems.reduce(
+    const result = editableItems.reduce(
       (totals, item) => {
+        const itemMaterial = parseCurrency(item.materialTotal);
+        const itemWork = parseCurrency(item.workTotal);
+
+        console.log(`[calculateTotals] Item: ${item.name}`);
+        console.log(
+          `  materialTotal string: "${item.materialTotal}", parsed: ${itemMaterial}`,
+        );
+        console.log(
+          `  workTotal string: "${item.workTotal}", parsed: ${itemWork}`,
+        );
+
         return {
-          material: totals.material + parseCurrency(item.materialTotal),
-          work: totals.work + parseCurrency(item.workTotal),
-          total:
-            totals.total +
-            parseCurrency(item.materialTotal) +
-            parseCurrency(item.workTotal),
+          material: totals.material + itemMaterial,
+          work: totals.work + itemWork,
+          total: totals.total + itemMaterial + itemWork,
         };
       },
-      { material: 0, work: 0, total: 0 }
+      { material: 0, work: 0, total: 0 },
     );
+
+    console.log("[calculateTotals] FINAL RESULT:", result);
+    return result;
   }, [editableItems]);
 
   const {
@@ -891,12 +926,18 @@ export function OfferDetailView({
     total: grandTotal,
   } = calculateTotals();
 
+  console.log("[offer-detail-mobile] Displayed totals:", {
+    materialTotal,
+    workTotal,
+    grandTotal,
+  });
+
   // Check if there are unanswered questions
   const hasUnansweredQuestions =
     extractQuestions(
       offer.description || "",
       offer.requirement?.updateCount,
-      offer.requirement?.questionCount
+      offer.requirement?.questionCount,
     ).length > 0;
 
   // Helper functions to extract name and email from title and description
@@ -911,7 +952,7 @@ export function OfferDetailView({
     if (!description) return "";
     // Try to find an email in the description
     const emailMatch = description.match(
-      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/
+      /\b[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Z|a-z]{2,}\b/,
     );
     return emailMatch ? emailMatch[0] : "";
   };
@@ -955,7 +996,7 @@ export function OfferDetailView({
     console.log("🔵 [HANDLE STATUS UPDATE] 3. Current status:", offer.status);
     console.log(
       "🔵 [HANDLE STATUS UPDATE] 4. assignToExisting:",
-      assignToExisting
+      assignToExisting,
     );
     console.log("🔵 [HANDLE STATUS UPDATE] 5. selectedWorkId:", selectedWorkId);
 
@@ -966,12 +1007,12 @@ export function OfferDetailView({
       // Ha meglévő munkához rendelés mód van bekapcsolva
       if (assignToExisting && selectedWorkId) {
         console.log(
-          "🔵 [HANDLE STATUS UPDATE] 7. MEGLÉVŐ MUNKÁHOZ RENDELÉS mód..."
+          "🔵 [HANDLE STATUS UPDATE] 7. MEGLÉVŐ MUNKÁHOZ RENDELÉS mód...",
         );
         // 1. Offer status frissítése és linkedOfferIds hozzáadása
         const result = await assignOfferToExistingWork(
           offer.id,
-          selectedWorkId
+          selectedWorkId,
         );
 
         if (!result.success) {
@@ -1034,12 +1075,12 @@ export function OfferDetailView({
       const result = await updateOfferStatus(offer.id, newStatus);
       console.log(
         "📋 [MUNKÁBA ÁLLÍTÁS] 3. updateOfferStatus eredmény:",
-        result
+        result,
       );
 
       if (result.success) {
         toast.success(
-          `Az ajánlat sikeresen áthelyezve a ${newStatus === "work" ? "munkálatok" : "piszkozatok"} közé!`
+          `Az ajánlat sikeresen áthelyezve a ${newStatus === "work" ? "munkálatok" : "piszkozatok"} közé!`,
         );
 
         // Ha munkába állítottuk, indítsuk el az AI feldolgozást
@@ -1065,7 +1106,7 @@ export function OfferDetailView({
           })
             .then(() => {
               console.log(
-                "✅ [AI FELDOLGOZÁS] 3. Kérés sikeresen elküldve a backend-nek"
+                "✅ [AI FELDOLGOZÁS] 3. Kérés sikeresen elküldve a backend-nek",
               );
             })
             .catch((err) => {
@@ -1085,18 +1126,18 @@ export function OfferDetailView({
       } else {
         console.error(
           "❌ [MUNKÁBA ÁLLÍTÁS] updateOfferStatus sikertelen:",
-          result
+          result,
         );
         toast.error(result.message || "Hiba történt az állapot frissítésekor");
       }
     } catch (error) {
       console.error(
         "❌ [HANDLE STATUS UPDATE] CATCH BLOCK - Error updating status:",
-        error
+        error,
       );
       console.error(
         "❌ [HANDLE STATUS UPDATE] Error stack:",
-        error instanceof Error ? error.stack : "No stack"
+        error instanceof Error ? error.stack : "No stack",
       );
       const errorMessage =
         error instanceof Error
@@ -1105,7 +1146,7 @@ export function OfferDetailView({
       toast.error(errorMessage);
     } finally {
       console.log(
-        "🔵 [HANDLE STATUS UPDATE] FINALLY BLOCK - setIsUpdatingStatus(false)"
+        "🔵 [HANDLE STATUS UPDATE] FINALLY BLOCK - setIsUpdatingStatus(false)",
       );
       setIsUpdatingStatus(false);
     }
@@ -1149,7 +1190,9 @@ export function OfferDetailView({
 
             <div className="space-y-4 py-4">
               <div className="space-y-2">
-                <Label htmlFor="supplement-input-req">Kiegészítő információ</Label>
+                <Label htmlFor="supplement-input-req">
+                  Kiegészítő információ
+                </Label>
                 <textarea
                   id="supplement-input-req"
                   value={supplementInput}
@@ -1167,7 +1210,9 @@ export function OfferDetailView({
                 disabled={isSupplementing || !supplementInput.trim()}
                 className="bg-[#FE9C00] hover:bg-[#E58A00] w-full"
               >
-                {isSupplementing ? "Ajánlat frissítése..." : "Ajánlat frissítése"}
+                {isSupplementing
+                  ? "Ajánlat frissítése..."
+                  : "Ajánlat frissítése"}
               </Button>
               <Button
                 variant="outline"
@@ -1451,12 +1496,12 @@ export function OfferDetailView({
                   <Input
                     id="materialUnitPrice"
                     value={formatNumberWithSpace(
-                      editingItem?.item.materialUnitPrice
+                      editingItem?.item.materialUnitPrice,
                     )}
                     onChange={(e) =>
                       handleModalChange(
                         "materialUnitPrice",
-                        e.target.value.replace(/\s+/g, "")
+                        e.target.value.replace(/\s+/g, ""),
                       )
                     }
                     className="text-right"
@@ -1475,7 +1520,7 @@ export function OfferDetailView({
                     onChange={(e) =>
                       handleModalChange(
                         "unitPrice",
-                        e.target.value.replace(/\s+/g, "")
+                        e.target.value.replace(/\s+/g, ""),
                       )
                     }
                     className="text-right"
@@ -1907,7 +1952,7 @@ export function OfferDetailView({
 
                     // Ellenőrizzük, hogy van-e kérdés a szövegben
                     const hasQuestions = filteredLines.some((line) =>
-                      line.trim().endsWith("?")
+                      line.trim().endsWith("?"),
                     );
 
                     // Ha nincs kérdés, akkor a "Tisztázandó kérdések:" feliratot is kiszűrjük
@@ -1915,7 +1960,7 @@ export function OfferDetailView({
                       ? filteredLines
                       : filteredLines.filter(
                           (line) =>
-                            !line.trim().includes("Tisztázandó kérdések")
+                            !line.trim().includes("Tisztázandó kérdések"),
                         );
 
                     return finalLines.join("\n").trim();
@@ -1931,7 +1976,7 @@ export function OfferDetailView({
           const questions = extractQuestions(
             offer.description || "",
             offer.requirement?.updateCount,
-            offer.requirement?.questionCount
+            offer.requirement?.questionCount,
           );
           if (!isDialogOpen && questions.length > 0) {
             return <div className="h-4"></div>;
@@ -1945,7 +1990,7 @@ export function OfferDetailView({
             const questions = extractQuestions(
               offer.description || "",
               offer.requirement?.updateCount,
-              offer.requirement?.questionCount
+              offer.requirement?.questionCount,
             );
             if (!isDialogOpen && questions.length > 0) {
               return (
@@ -1956,7 +2001,7 @@ export function OfferDetailView({
                         setDemandText(
                           offer.requirement?.description ||
                             offer.description ||
-                            ""
+                            "",
                         );
                         setIsDialogOpen(true);
                       }}
@@ -1980,7 +2025,7 @@ export function OfferDetailView({
             questions={extractQuestions(
               offer.description || "",
               offer.requirement?.updateCount,
-              offer.requirement?.questionCount
+              offer.requirement?.questionCount,
             )}
             requirementId={offer.requirement?.id}
             requirementDescription={
@@ -2087,7 +2132,7 @@ export function OfferDetailView({
                       onClick={async () => {
                         try {
                           const result = await removeAllQuestionsFromOffer(
-                            offer.id
+                            offer.id,
                           );
                           if (
                             result.success &&
@@ -2096,17 +2141,17 @@ export function OfferDetailView({
                           ) {
                             onOfferUpdated({ description: result.description });
                             toast.success(
-                              "Kérdések ignorálva, most már szerkesztheti a tételeket"
+                              "Kérdések ignorálva, most már szerkesztheti a tételeket",
                             );
                           } else {
                             toast.error(
-                              "Hiba történt a kérdések eltávolítása során"
+                              "Hiba történt a kérdések eltávolítása során",
                             );
                           }
                         } catch (error) {
                           console.error("Error ignoring questions:", error);
                           toast.error(
-                            "Hiba történt a kérdések eltávolítása során"
+                            "Hiba történt a kérdések eltávolítása során",
                           );
                         }
                       }}
@@ -2237,7 +2282,7 @@ export function OfferDetailView({
                                 >
                                   {item.materialUnitPrice
                                     ? formatNumberWithSpace(
-                                        item.materialUnitPrice
+                                        item.materialUnitPrice,
                                       ) + " Ft"
                                     : "0 Ft"}
                                 </div>
@@ -2293,7 +2338,7 @@ export function OfferDetailView({
                         Anyagköltség összesen:
                       </div>
                       <div className="text-sm font-bold text-gray-900">
-                        {materialTotal.toLocaleString("hu-HU")} Ft
+                        {Math.floor(materialTotal).toLocaleString("hu-HU")} Ft
                       </div>
                     </div>
                     <div className="text-right">
@@ -2301,7 +2346,7 @@ export function OfferDetailView({
                         Munkadíj összesen:
                       </div>
                       <div className="text-sm font-bold text-gray-900">
-                        {workTotal.toLocaleString("hu-HU")} Ft
+                        {Math.floor(workTotal).toLocaleString("hu-HU")} Ft
                       </div>
                     </div>
                   </div>
@@ -2311,7 +2356,7 @@ export function OfferDetailView({
                         Összesített nettó költség:
                       </div>
                       <div className="text-lg font-bold text-gray-900">
-                        {grandTotal.toLocaleString("hu-HU")} Ft
+                        {Math.floor(grandTotal).toLocaleString("hu-HU")} Ft
                       </div>
                     </div>
 
@@ -2342,7 +2387,7 @@ export function OfferDetailView({
                         <button
                           onClick={async () => {
                             const newItems = editableItems.filter(
-                              (item) => item.new
+                              (item) => item.new,
                             );
                             if (newItems.length === 0) {
                               toast.info("Nincs új tétel mentésre");
@@ -2350,7 +2395,7 @@ export function OfferDetailView({
                             }
 
                             const savingToast = toast.loading(
-                              `${newItems.length} új tétel mentése...`
+                              `${newItems.length} új tétel mentése...`,
                             );
                             let successCount = 0;
                             let failCount = 0;
@@ -2361,7 +2406,7 @@ export function OfferDetailView({
                               try {
                                 const laborCost = parseCurrency(item.unitPrice);
                                 const materialCost = parseCurrency(
-                                  item.materialUnitPrice
+                                  item.materialUnitPrice,
                                 );
 
                                 // Mentés tenant árlistába (mindig)
@@ -2371,7 +2416,7 @@ export function OfferDetailView({
                                   "Egyedi",
                                   item.unit,
                                   laborCost,
-                                  materialCost
+                                  materialCost,
                                 );
 
                                 if (tenantResult.success) {
@@ -2388,7 +2433,7 @@ export function OfferDetailView({
                                     "Egyedi",
                                     item.unit,
                                     laborCost,
-                                    materialCost
+                                    materialCost,
                                   );
 
                                   if (globalResult.success) {
@@ -2401,7 +2446,7 @@ export function OfferDetailView({
                                 console.error(
                                   "Error saving item:",
                                   item.name,
-                                  error
+                                  error,
                                 );
                                 failCount++;
                               }
@@ -2412,18 +2457,18 @@ export function OfferDetailView({
                             if (successCount > 0) {
                               // Update items to remove new flag
                               const updatedItems = editableItems.map((item) =>
-                                item.new ? { ...item, new: false } : item
+                                item.new ? { ...item, new: false } : item,
                               );
 
                               const updateResult = await updateOfferItems(
                                 parseInt(offer.id.toString()),
-                                updatedItems
+                                updatedItems,
                               );
 
                               if (updateResult.success) {
                                 setEditableItems(updatedItems);
                                 setOriginalItems(
-                                  updatedItems.map((item) => ({ ...item }))
+                                  updatedItems.map((item) => ({ ...item })),
                                 );
 
                                 let message = `${successCount} tétel sikeresen mentve a vállalkozói árlistához!`;
@@ -2433,20 +2478,20 @@ export function OfferDetailView({
                                 toast.success(message);
                               } else {
                                 toast.warning(
-                                  `${successCount} tétel mentve, de az ajánlat frissítése sikertelen`
+                                  `${successCount} tétel mentve, de az ajánlat frissítése sikertelen`,
                                 );
                               }
                             }
 
                             if (failCount > 0) {
                               toast.error(
-                                `${failCount} tétel mentése sikertelen`
+                                `${failCount} tétel mentése sikertelen`,
                               );
                             }
 
                             if (globalFailCount > 0) {
                               toast.error(
-                                `${globalFailCount} tétel globális mentése sikertelen`
+                                `${globalFailCount} tétel globális mentése sikertelen`,
                               );
                             }
                           }}
@@ -2681,22 +2726,22 @@ export function OfferDetailView({
             <Button
               onClick={() => {
                 console.log(
-                  "🟢 [GOMB KATTINTÁS] Munkába állítás gomb megnyomva!"
+                  "🟢 [GOMB KATTINTÁS] Munkába állítás gomb megnyomva!",
                 );
                 console.log(
                   "🟢 [GOMB KATTINTÁS] isUpdatingStatus:",
-                  isUpdatingStatus
+                  isUpdatingStatus,
                 );
                 console.log(
                   "🟢 [GOMB KATTINTÁS] assignToExisting:",
-                  assignToExisting
+                  assignToExisting,
                 );
                 console.log(
                   "🟢 [GOMB KATTINTÁS] selectedWorkId:",
-                  selectedWorkId
+                  selectedWorkId,
                 );
                 console.log(
-                  "🟢 [GOMB KATTINTÁS] handleStatusUpdate függvény meghívása..."
+                  "🟢 [GOMB KATTINTÁS] handleStatusUpdate függvény meghívása...",
                 );
                 handleStatusUpdate();
               }}
@@ -2757,7 +2802,7 @@ export function OfferDetailView({
                   <Label className="text-sm font-medium">Anyag egységár</Label>
                   <p className="text-sm text-gray-700 mt-1">
                     {formatNumberWithSpace(
-                      selectedCustomItem.materialUnitPrice
+                      selectedCustomItem.materialUnitPrice,
                     )}{" "}
                     Ft
                   </p>
