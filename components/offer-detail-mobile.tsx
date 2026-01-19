@@ -2258,7 +2258,12 @@ export function OfferDetailView({
                     {/* Price Grid */}
                     <div className="mt-3 text-sm">
                       <div className="overflow-x-auto">
-                        <table className="min-w-full">
+                        <table className="min-w-full table-fixed">
+                          <colgroup>
+                            <col style={{ width: "40%" }} />
+                            <col style={{ width: "30%" }} />
+                            <col style={{ width: "30%" }} />
+                          </colgroup>
                           <thead>
                             <tr>
                               <th className="px-2 py-1 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"></th>
