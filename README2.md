@@ -765,3 +765,6 @@ megjelenik a háttér
 legyen egy gomb csak a tenantPriceListbe
 Kiegészítő információk vissza
 nyersanyagok
+-----
+importnál a végösszeget jól számolja ki!,
+Beérkezett ajanlatkérés feltöltése

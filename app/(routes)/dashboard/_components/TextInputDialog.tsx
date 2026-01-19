@@ -184,7 +184,7 @@ export default function TextInputDialog({
                         <span className="text-sm font-medium text-gray-700">
                           {selectedFile
                             ? selectedFile.name
-                            : "Fájl feltöltése (Excel/PDF)"}
+                            : "Beérkezett ajánlatkérés feltöltése (Excel/PDF)"}
                         </span>
                       </div>
                     </label>
