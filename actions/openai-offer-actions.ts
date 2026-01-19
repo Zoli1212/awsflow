@@ -11,11 +11,32 @@ let priceListCache: any[] | null = null;
 let priceListCacheTimestamp: number = 0;
 const CACHE_TTL_MS = 5 * 60 * 1000; // 5 perc
 
-async function getPriceListForCategories(categories: string[]): Promise<any[]> {
+async function getPriceListForCategories(
+  categories: string[],
+  tenantEmail: string,
+): Promise<any[]> {
   console.log(`🔄 PriceList betöltés (${categories.length} kategória)...`);
 
   try {
-    const priceList = await prisma.priceList.findMany({
+    // 1. Betöltjük a tenant-specifikus árakat (TenantPriceList)
+    const tenantPriceList = await prisma.tenantPriceList.findMany({
+      where: {
+        tenantEmail: tenantEmail,
+        category: { in: categories },
+      },
+      select: {
+        category: true,
+        task: true,
+        unit: true,
+        laborCost: true,
+        materialCost: true,
+      },
+      orderBy: [{ category: "asc" }, { task: "asc" }],
+    });
+    console.log(`  ├─ TenantPriceList: ${tenantPriceList.length} tétel`);
+
+    // 2. Betöltjük a globális árakat (PriceList)
+    const globalPriceList = await prisma.priceList.findMany({
       where: {
         tenantEmail: "",
         category: { in: categories },
@@ -29,9 +50,28 @@ async function getPriceListForCategories(categories: string[]): Promise<any[]> {
       },
       orderBy: [{ category: "asc" }, { task: "asc" }],
     });
+    console.log(`  ├─ GlobalPriceList: ${globalPriceList.length} tétel`);
 
-    console.log(`✅ PriceList betöltve: ${priceList.length} tétel`);
-    return priceList;
+    // 3. Merge: tenant-specifikus felülírja a globálist
+    const mergedMap = new Map<string, any>();
+
+    // Először a globális árakat
+    globalPriceList.forEach((item) => {
+      const key = `${item.category}|||${item.task}`;
+      mergedMap.set(key, item);
+    });
+
+    // Aztán a tenant-specifikus árak felülírják
+    tenantPriceList.forEach((item) => {
+      const key = `${item.category}|||${item.task}`;
+      mergedMap.set(key, item);
+    });
+
+    const mergedPriceList = Array.from(mergedMap.values());
+    console.log(
+      `✅ PriceList betöltve: ${mergedPriceList.length} tétel (${tenantPriceList.length} tenant + ${globalPriceList.length} global)`,
+    );
+    return mergedPriceList;
   } catch (error) {
     console.error("❌ PriceList hiba:", error);
     return [];
@@ -67,7 +107,7 @@ export async function createOfferFromText({
         const ragEnhancedInput = await enhancePromptWithRAG(
           baseInput,
           userInput,
-          true
+          true,
         );
         finalInput = ragEnhancedInput;
         console.log("✅ [STEP 2] RAG enhancement successful");
@@ -80,7 +120,21 @@ export async function createOfferFromText({
     }
 
     console.log("\n📚 [STEP 2.5] Loading task catalog for AI (no prices)...");
-    const taskCatalog = await prisma.priceList.findMany({
+
+    // 1. Betöltjük a tenant-specifikus task-okat
+    const tenantTaskCatalog = await prisma.tenantPriceList.findMany({
+      where: { tenantEmail: tenantEmail },
+      select: {
+        category: true,
+        task: true,
+        unit: true,
+      },
+      orderBy: [{ category: "asc" }, { task: "asc" }],
+    });
+    console.log(`  ├─ TenantPriceList tasks: ${tenantTaskCatalog.length}`);
+
+    // 2. Betöltjük a globális task-okat
+    const globalTaskCatalog = await prisma.priceList.findMany({
       where: { tenantEmail: "" },
       select: {
         category: true,
@@ -89,10 +143,37 @@ export async function createOfferFromText({
       },
       orderBy: [{ category: "asc" }, { task: "asc" }],
     });
-    console.log(`✅ [STEP 2.5] Loaded ${taskCatalog.length} tasks`);
+    console.log(`  ├─ GlobalPriceList tasks: ${globalTaskCatalog.length}`);
 
-    const taskCatalogString = JSON.stringify(taskCatalog, null, 2);
-    finalInput = `${finalInput}\n\n===AVAILABLE TASKS (válassz ezek közül)===\n${taskCatalogString}`;
+    // 3. Merge: tenant-specifikus felülírja a globálist
+    const taskMap = new Map<string, any>();
+
+    // Először a globális task-ok
+    globalTaskCatalog.forEach((item) => {
+      const key = `${item.category}|||${item.task}`;
+      taskMap.set(key, item);
+    });
+
+    // Aztán a tenant-specifikus task-ok felülírják
+    tenantTaskCatalog.forEach((item) => {
+      const key = `${item.category}|||${item.task}`;
+      taskMap.set(key, item);
+    });
+
+    const taskCatalog = Array.from(taskMap.values());
+    console.log(
+      `✅ [STEP 2.5] Loaded ${taskCatalog.length} tasks (${tenantTaskCatalog.length} tenant + ${globalTaskCatalog.length} global)`,
+    );
+
+    // Ha van katalógus, használja azt; ha nincs, szabadon generálhat
+    if (taskCatalog.length > 0) {
+      const taskCatalogString = JSON.stringify(taskCatalog, null, 2);
+      finalInput = `${finalInput}\n\n===AVAILABLE TASKS (válassz ezek közül)===\n${taskCatalogString}`;
+      console.log("  ├─ Catalog mode: AI will choose from available tasks");
+    } else {
+      finalInput = `${finalInput}\n\n===NINCS TASK KATALÓGUS===\nSzabadon generálhatsz task-okat a követelmények alapján. Adj meg reális kategóriákat, task neveket és egységeket.`;
+      console.log("  ├─ Free mode: AI will generate tasks freely (no catalog)");
+    }
 
     console.log("\n🤖 [STEP 3] Calling OpenAI API (gpt-4o) - Initial pass...");
 
@@ -130,7 +211,16 @@ export async function createOfferFromText({
 3. SOHA ne add vissza: "További információ szükséges" - helyette MINDIG generálj ajánlatot a rendelkezésre álló adatok alapján
 4. A "questions" rész KÖTELEZŐ, ha bármilyen információ hiányzik
 5. Az "offerSummary" KÖTELEZŐ - pontosan 4 mondat magyarul
-6. CSAK a PRICE CATALOG-ból válassz task-okat! Ha valami nincs benne, jelöld meg "customTask": true-val
+
+**TASK KATALÓGUS HASZNÁLATA:**
+6. Ha van "===AVAILABLE TASKS===" katalógus:
+   - CSAK a katalógusból válassz task-okat!
+   - Ha valami nincs benne, jelöld meg "customTask": true-val
+7. Ha "===NINCS TASK KATALÓGUS===" üzenet látható:
+   - Szabadon generálhatsz task-okat a követelmények alapján
+   - Adj meg reális kategóriákat, task neveket és egységeket
+   - Minden task legyen "customTask": true
+   - Használj standard felújítási kategóriákat (pl. "Burkolás", "Festés", "Villanyszerelés", stb.)
 
 **ANYAGÁRAK KEZELÉSE:**
 7. Ha a követelményben szerepelnek anyagárak (pl. "Zuhanyzó 150000 Ft", "WC 50000 Ft", "Kád 160000 Ft"), akkor KÖTELEZŐEN:
@@ -180,13 +270,13 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
               max_tokens: 4000,
               temperature: 0.1,
             }),
-          }
+          },
         );
 
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}));
           throw new Error(
-            `OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`
+            `OpenAI API error: ${response.status} - ${JSON.stringify(errorData)}`,
           );
         }
 
@@ -196,7 +286,7 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
         console.log(
           "  ✅ Response received, length:",
           result?.length || 0,
-          "chars"
+          "chars",
         );
         break;
       } catch (error: any) {
@@ -255,7 +345,7 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
     ] as string[];
     console.log("  ├─ Categories:", categories);
 
-    const priceList = await getPriceListForCategories(categories);
+    const priceList = await getPriceListForCategories(categories, tenantEmail);
     console.log("  └─ Loaded", priceList.length, "price items");
 
     console.log("\n💰 [STEP 6] Building final items with prices...");
@@ -264,7 +354,7 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
 
     aiItems.forEach((aiItem: any) => {
       const match = priceList.find(
-        (p) => p.category === aiItem.category && p.task === aiItem.task
+        (p) => p.category === aiItem.category && p.task === aiItem.task,
       );
 
       if (match) {
@@ -280,7 +370,7 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
 
         finalItems.push({
           new: false,
-          name: `*${aiItem.task}`,
+          name: aiItem.task,
           unit: aiItem.unit,
           quantity: String(quantity),
           unitPrice: String(unitPrice),
@@ -291,7 +381,7 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
         });
 
         console.log(
-          `  ├─ Matched: ${aiItem.task} (${laborCost} + ${materialCost})`
+          `  ├─ Matched: ${aiItem.task} (${laborCost} + ${materialCost})`,
         );
       } else {
         // Not found in pricelist - need AI estimation
@@ -304,13 +394,13 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
       finalItems.length,
       "standard,",
       customItems.length,
-      "custom"
+      "custom",
     );
 
     // If there are custom items, ask AI to estimate
     if (customItems.length > 0) {
       console.log(
-        `\n🤖 [STEP 6.5] AI price estimation for ${customItems.length} custom items...`
+        `\n🤖 [STEP 6.5] AI price estimation for ${customItems.length} custom items...`,
       );
 
       try {
@@ -324,7 +414,7 @@ ${JSON.stringify(
     reason: item.customReason,
   })),
   null,
-  2
+  2,
 )}
 
 FONTOS SZABÁLYOK:
@@ -368,7 +458,7 @@ Válasz formátum:
               max_tokens: 1000,
               temperature: 0.1,
             }),
-          }
+          },
         );
 
         if (priceResponse.ok) {
@@ -387,7 +477,7 @@ Válasz formátum:
           // Apply AI-estimated prices and add to finalItems
           customItems.forEach((customItem: any) => {
             const priceMatch = parsedPrices.prices?.find(
-              (p: any) => p.task === customItem.task
+              (p: any) => p.task === customItem.task,
             );
             if (priceMatch) {
               const laborCost = priceMatch.laborCost || 0;
@@ -401,7 +491,7 @@ Válasz formátum:
 
               finalItems.push({
                 new: true,
-                name: `*${customItem.task}`,
+                name: customItem.task,
                 unit: customItem.unit,
                 quantity: String(quantity),
                 unitPrice: String(unitPrice),
@@ -412,7 +502,7 @@ Válasz formátum:
               });
 
               console.log(
-                `  ├─ AI estimated: ${customItem.task} (${laborCost} + ${materialCost})`
+                `  ├─ AI estimated: ${customItem.task} (${laborCost} + ${materialCost})`,
               );
             }
           });
@@ -533,7 +623,7 @@ Válasz formátum:
 
       console.log(
         "  ├─ Offer created with estimatedDuration:",
-        offer.estimatedDuration
+        offer.estimatedDuration,
       );
 
       console.log("  └─ Offer created:", offer.id);
