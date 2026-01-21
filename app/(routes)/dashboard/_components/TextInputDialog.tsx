@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import {
   Dialog,
   DialogContent,
@@ -28,15 +28,25 @@ export default function TextInputDialog({
   setOpen,
 }: TextInputDialogProps) {
   const { demandText, setDemandText } = useDemandStore();
+  // Lokális state a textarea-hoz - nem rendereli újra a store-t minden karakternél
+  const [localText, setLocalText] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [uploadingFile, setUploadingFile] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const router = useRouter();
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { clearOfferItemsQuestion } = useOfferItemQuestionStore();
   const { clearOfferItems } = useOfferItemCheckStore();
   const { clearExtraRequirementText } = useDemandStore();
+
+  // Dialog megnyitásakor szinkronizáljuk a lokális state-et a store-ból
+  useEffect(() => {
+    if (open) {
+      setLocalText(demandText);
+    }
+  }, [open, demandText]);
 
   useEffect(() => {
     clearOfferItemsQuestion();
@@ -78,7 +88,7 @@ export default function TextInputDialog({
       });
 
       if (response.data.success) {
-        setDemandText(response.data.extractedText);
+        setLocalText(response.data.extractedText);
         setSelectedFile(null);
       } else {
         setError(

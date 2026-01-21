@@ -768,3 +768,4 @@ nyersanyagok
 -----
 importnál a végösszeget jól számolja ki!,
 Beérkezett ajanlatkérés feltöltése
+Tenant legyen erősebb! 
