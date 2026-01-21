@@ -61,6 +61,7 @@ export function AppSidebar() {
   const [inviteLoading, setInviteLoading] = useState(false);
   const [inviteCopied, setInviteCopied] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
+  const [inviteLinkDialog, setInviteLinkDialog] = useState<string | null>(null);
   const hasLoadedUserData = useRef(false);
 
   useEffect(() => {
@@ -174,8 +175,8 @@ export function AppSidebar() {
         }, 3000);
       } catch (err) {
         console.error("Copy to clipboard failed:", err);
-        // Még mindig jelezzük, hogy megpróbáltuk
-        alert(`Meghívó link: ${result.inviteUrl}`);
+        // iOS-en és ha a clipboard nem működik, megjelenítjük a linket egy dialógusban
+        setInviteLinkDialog(result.inviteUrl);
       }
     }
 
@@ -528,6 +529,38 @@ export function AppSidebar() {
           </button>
         </div>
       </SidebarFooter>
+
+      {/* Meghívó link dialógus iOS-hez (ahol a clipboard nem működik) */}
+      {inviteLinkDialog && (
+        <div
+          className="fixed inset-0 bg-black/50 flex items-center justify-center z-50"
+          onClick={() => setInviteLinkDialog(null)}
+        >
+          <div
+            className="bg-white rounded-xl p-6 mx-4 max-w-md w-full shadow-2xl"
+            onClick={(e) => e.stopPropagation()}
+          >
+            <h3 className="text-lg font-semibold text-gray-900 mb-3">Meghívó link</h3>
+            <p className="text-sm text-gray-600 mb-3">
+              Jelöld ki és másold a linket:
+            </p>
+            <input
+              type="text"
+              readOnly
+              value={inviteLinkDialog}
+              className="w-full p-3 bg-gray-100 border border-gray-300 rounded-lg text-sm text-gray-800 select-all"
+              onClick={(e) => (e.target as HTMLInputElement).select()}
+              onFocus={(e) => e.target.select()}
+            />
+            <button
+              onClick={() => setInviteLinkDialog(null)}
+              className="w-full mt-4 py-3 bg-[#FF9900] text-white rounded-lg font-medium hover:bg-[#e68a00] transition-colors"
+            >
+              OK
+            </button>
+          </div>
+        </div>
+      )}
     </Sidebar>
   );
 }

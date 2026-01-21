@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState } from "react";
 import {
   Dialog,
   DialogContent,
@@ -35,7 +35,6 @@ export default function TextInputDialog({
   const [uploadingFile, setUploadingFile] = useState(false);
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const router = useRouter();
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   const { clearOfferItemsQuestion } = useOfferItemQuestionStore();
   const { clearOfferItems } = useOfferItemCheckStore();
@@ -113,7 +112,7 @@ export default function TextInputDialog({
   };
 
   const onAnalyze = async () => {
-    if (!demandText.trim()) {
+    if (!localText.trim()) {
       setError("Kérjük adj meg egy szöveget az elemzéshez!");
       return;
     }
@@ -121,10 +120,13 @@ export default function TextInputDialog({
     setLoading(true);
     setError("");
 
+    // Szinkronizáljuk a store-ba submit előtt
+    setDemandText(localText);
+
     try {
       // Új OpenAI endpoint használata (nincs Inngest, History)
       const result = await axios.post("/api/openai-offer", {
-        userInput: demandText,
+        userInput: localText,
         existingItems: [],
       });
 
@@ -232,9 +234,9 @@ export default function TextInputDialog({
                 <Textarea
                   placeholder="Például: 50m²-es lakás felújítása, burkolással, festéssel és villanyszereléssel..."
                   className="flex-1 min-h-[200px] text-base p-4 resize-none"
-                  value={demandText}
+                  value={localText}
                   onChange={(e) => {
-                    setDemandText(e.target.value);
+                    setLocalText(e.target.value);
                     setError("");
                   }}
                 />
@@ -274,7 +276,7 @@ export default function TextInputDialog({
               </Button>
               <Button
                 className="w-full h-14 text-base font-medium bg-[#FF9900] hover:bg-[#e68a00] text-white"
-                disabled={!demandText.trim() || loading}
+                disabled={!localText.trim() || loading}
                 onClick={onAnalyze}
                 size="lg"
               >
