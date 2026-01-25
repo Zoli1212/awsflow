@@ -424,11 +424,11 @@ Válaszolj CSAK érvényes JSON-nal, semmi mással!`,
         const laborCost = match.laborCost || 0;
         const materialCost = match.materialCost || 0;
         const quantity = aiItem.quantity || 0;
-        const unitPrice = laborCost;
-        const materialUnitPrice = materialCost;
-        const workTotal = laborCost * quantity;
-        const materialTotal = materialCost * quantity;
-        const totalPrice = workTotal + materialTotal;
+        const unitPrice = Math.round(laborCost);
+        const materialUnitPrice = Math.round(materialCost);
+        const workTotal = Math.round(laborCost * quantity);
+        const materialTotal = Math.round(materialCost * quantity);
+        const totalPrice = Math.round(workTotal + materialTotal);
 
         finalItems.push({
           new: false,
@@ -546,11 +546,11 @@ Válasz formátum:
               const laborCost = priceMatch.laborCost || 0;
               const materialCost = priceMatch.materialCost || 0;
               const quantity = customItem.quantity || 0;
-              const unitPrice = laborCost;
-              const materialUnitPrice = materialCost;
-              const workTotal = laborCost * quantity;
-              const materialTotal = materialCost * quantity;
-              const totalPrice = workTotal + materialTotal;
+              const unitPrice = Math.round(laborCost);
+              const materialUnitPrice = Math.round(materialCost);
+              const workTotal = Math.round(laborCost * quantity);
+              const materialTotal = Math.round(materialCost * quantity);
+              const totalPrice = Math.round(workTotal + materialTotal);
 
               finalItems.push({
                 new: true,
@@ -603,7 +603,10 @@ Válasz formátum:
       workTotalCalc += parseFloat(item.workTotal) || 0;
     });
 
-    const totalPrice = materialTotalCalc + workTotalCalc;
+    // Kerekítjük az összesítőket is
+    materialTotalCalc = Math.round(materialTotalCalc);
+    workTotalCalc = Math.round(workTotalCalc);
+    const totalPrice = Math.round(materialTotalCalc + workTotalCalc);
     console.log("  ├─ Material Total:", materialTotalCalc);
     console.log("  ├─ Work Total:", workTotalCalc);
     console.log("  └─ Total Price:", totalPrice);

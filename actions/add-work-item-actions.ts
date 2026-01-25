@@ -96,15 +96,15 @@ export async function addWorkItemAndOfferItem(workId: number, itemData?: {
 
     // Update the offer with the new item (following existing updateOfferItems pattern)
     await prisma.offer.update({
-      where: { 
+      where: {
         id: offer.id,
         tenantEmail: tenantEmail, // Ensure we only update if the offer belongs to the user
       },
       data: {
         items: JSON.stringify(updatedItems),
-        totalPrice: grandTotal,
-        materialTotal: parseFloat(materialTotal.toFixed(2)),
-        workTotal: parseFloat(workTotal.toFixed(2)),
+        totalPrice: Math.round(grandTotal),
+        materialTotal: Math.round(materialTotal),
+        workTotal: Math.round(workTotal),
         updatedAt: new Date(),
       },
     });
@@ -113,7 +113,7 @@ export async function addWorkItemAndOfferItem(workId: number, itemData?: {
     const materialUnitPriceNum = parseFloat(newOfferItem.materialUnitPrice.replace(/[^\d.-]/g, '')) || 0;
     const unitPriceNum = parseFloat(newOfferItem.unitPrice.replace(/[^\d.-]/g, '')) || 0;
     const quantityNum = parseInt(newOfferItem.quantity) || 1;
-    
+
     const newWorkItem = await prisma.workItem.create({
       data: {
         workId: workId,
@@ -121,11 +121,11 @@ export async function addWorkItemAndOfferItem(workId: number, itemData?: {
         description: itemData?.name ? `${itemData.name} - munkaelem` : "Új munkaelem leírása",
         quantity: quantityNum, // Same quantity as offer item
         unit: newOfferItem.unit, // Same unit as offer item
-        unitPrice: unitPriceNum,
-        materialUnitPrice: materialUnitPriceNum,
-        workTotal: quantityNum * unitPriceNum,
-        materialTotal: quantityNum * materialUnitPriceNum,
-        totalPrice: (quantityNum * unitPriceNum) + (quantityNum * materialUnitPriceNum),
+        unitPrice: Math.round(unitPriceNum),
+        materialUnitPrice: Math.round(materialUnitPriceNum),
+        workTotal: Math.round(quantityNum * unitPriceNum),
+        materialTotal: Math.round(quantityNum * materialUnitPriceNum),
+        totalPrice: Math.round((quantityNum * unitPriceNum) + (quantityNum * materialUnitPriceNum)),
         tenantEmail: tenantEmail,
         progress: 0,
         completedQuantity: 0,

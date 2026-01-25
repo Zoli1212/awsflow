@@ -236,18 +236,28 @@ export async function POST(req: NextRequest) {
       }
     }
 
-    // --- Szigorú validáció: minden workItem mező egyezzen az offerItem-mel ---
-    console.log("🔍 [start-work] Starting strict validation...");
+    // --- Validáció: ellenőrizzük, hogy minden offerItem-hez van workItem ---
+    // Majd az eredeti offer értékeket használjuk (az AI csak a description, tools, materials, requiredProfessionals mezőket generálja)
+    console.log("🔍 [start-work] Starting validation and merging...");
+    console.log("🔍 [start-work] offerItems count:", offerItems?.length);
+    console.log("🔍 [start-work] parsed.workItems count:", parsed?.workItems?.length);
+
     if (
       parsed &&
       Array.isArray(parsed.workItems) &&
       Array.isArray(offerItems)
     ) {
       console.log("✅ [start-work] Validation arrays are valid");
+
+      // Az AI-tól kapott workItems-et mergeljük az eredeti offer értékekkel
+      // Az offer értékek mindig felülírják az AI által generáltakat (ár mezők)
       for (let i = 0; i < offerItems.length; i++) {
+        console.log(`🔍 [start-work] Processing item ${i + 1}/${offerItems.length}: ${offerItems[i]?.name}`);
         const offer = offerItems[i];
         const work = parsed.workItems[i];
+
         if (!work) {
+          console.error(`❌ [start-work] Missing workItem for offerItem ${i}: ${offer?.name}`);
           return NextResponse.json(
             {
               error: `Hiányzó workItem a ${i}. offerItem-hez`,
@@ -256,67 +266,31 @@ export async function POST(req: NextRequest) {
             { status: 400 }
           );
         }
-        const fields: (keyof WorkItem)[] = [
-          "name",
-          "quantity",
-          "unit",
-          "unitPrice",
-          "materialUnitPrice",
-          "workTotal",
-          "materialTotal",
-          "totalPrice",
+
+        // Csak akkor írjuk felül, ha az AI más értéket adott vissza
+        const fieldsToCheck: (keyof WorkItem)[] = [
+          "name", "quantity", "unit", "unitPrice",
+          "materialUnitPrice", "workTotal", "materialTotal", "totalPrice"
         ];
-        for (const field of fields as (keyof WorkItem)[]) {
-          // Special handling for totalPrice - calculate it from materialTotal + workTotal
-          if (field === "totalPrice") {
-            const parseCurrency = (value: string | number): number => {
-              if (typeof value === "number") return value;
-              const numericValue = String(value)
-                .replace(/[^0-9,-]+/g, "")
-                .replace(",", ".");
-              return parseFloat(numericValue) || 0;
-            };
 
-            const offerMaterialTotal = parseCurrency(
-              offer.materialTotal || "0"
-            );
-            const offerWorkTotal = parseCurrency(offer.workTotal || "0");
-            const expectedTotalPrice = offerMaterialTotal + offerWorkTotal;
-
-            const workTotalPrice = parseCurrency(work[field]);
-
-            // Allow small rounding differences (1 Ft tolerance)
-            if (Math.abs(workTotalPrice - expectedTotalPrice) > 1) {
-              return NextResponse.json(
-                {
-                  error: `workItem[${i}].${field} nem egyezik az offerItem-mel`,
-                  offerValue: expectedTotalPrice,
-                  workValue: workTotalPrice,
-                  offerItem: offer,
-                  workItem: work,
-                },
-                { status: 400 }
-              );
-            }
-          } else {
-            if (String(work[field]) !== String(offer[field])) {
-              return NextResponse.json(
-                {
-                  error: `workItem[${i}].${field} nem egyezik az offerItem-mel`,
-                  offerValue: offer[field],
-                  workValue: work[field],
-                  offerItem: offer,
-                  workItem: work,
-                },
-                { status: 400 }
-              );
-            }
+        const correctedFields: string[] = [];
+        for (const field of fieldsToCheck) {
+          if (String(work[field]) !== String(offer[field])) {
+            correctedFields.push(`${field}: "${work[field]}" → "${offer[field]}"`);
+            (work as any)[field] = offer[field];
           }
+        }
+
+        if (correctedFields.length > 0) {
+          console.log(`⚠️ [start-work] Item ${i + 1} (${offer?.name}) - corrected ${correctedFields.length} fields:`);
+          correctedFields.forEach(f => console.log(`    - ${f}`));
+        } else {
+          console.log(`✅ [start-work] Item ${i + 1} (${offer?.name}) - all fields match`);
         }
       }
     }
-    // --- /Szigorú validáció ---
-    console.log("✅ [start-work] Validation complete");
+    // --- /Validáció és merge ---
+    console.log("✅ [start-work] All items processed and merged");
     console.log(
       "📤 [start-work] Response workItems count:",
       parsed?.workItems?.length

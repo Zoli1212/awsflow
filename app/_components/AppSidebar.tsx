@@ -23,6 +23,7 @@ import {
   UserPlus,
   Check,
   DollarSign,
+  BarChart3,
 } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -41,6 +42,7 @@ const mainItems = [
   { title: "Számláim", url: "/billings", icon: Wallet, tenantOnly: true },
   { title: "Munkások", url: "/others", icon: Users, tenantOnly: true },
   { title: "Áraim", url: "/prices", icon: DollarSign, tenantOnly: true },
+  { title: "Statisztika", url: "/statistics", icon: BarChart3, superUserOnly: true },
 ];
 
 const secondaryItems = [
@@ -207,6 +209,10 @@ export function AppSidebar() {
                 .filter((item) => {
                   // Hide tenant-only items for non-tenant users (workers)
                   if (!isTenant && item.tenantOnly) {
+                    return false;
+                  }
+                  // Hide superUser-only items for non-superusers
+                  if (!isSuperUser && item.superUserOnly) {
                     return false;
                   }
                   return true;

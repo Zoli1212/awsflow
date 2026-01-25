@@ -155,9 +155,9 @@ Módosítsd a tételeket a kérésnek megfelelően, és add vissza az összes t�
         `    ├─ Work Unit Price: ${item.workUnitPrice} → ${workUnitPrice}`
       );
 
-      const materialPrice = quantity * materialUnitPrice;
-      const workPrice = quantity * workUnitPrice;
-      const totalItemPrice = materialPrice + workPrice;
+      const materialPrice = Math.round(quantity * materialUnitPrice);
+      const workPrice = Math.round(quantity * workUnitPrice);
+      const totalItemPrice = Math.round(materialPrice + workPrice);
 
       console.log(`    ├─ Material Price: ${materialPrice}`);
       console.log(`    ├─ Work Price: ${workPrice}`);
@@ -170,8 +170,8 @@ Módosítsd a tételeket a kérésnek megfelelően, és add vissza az összes t�
         name: item.name,
         quantity: String(quantity),
         unit: item.unit,
-        materialUnitPrice: `${materialUnitPrice} Ft`,
-        unitPrice: `${workUnitPrice} Ft`,
+        materialUnitPrice: `${Math.round(materialUnitPrice)} Ft`,
+        unitPrice: `${Math.round(workUnitPrice)} Ft`,
         materialPrice: `${materialPrice} Ft`,
         price: `${workPrice} Ft`,
         workTotal: `${workPrice} Ft`,
@@ -181,7 +181,10 @@ Módosítsd a tételeket a kérésnek megfelelően, és add vissza az összes t�
       };
     });
 
-    const totalPrice = materialTotal + workTotal;
+    // Kerekítjük az összesítőket
+    materialTotal = Math.round(materialTotal);
+    workTotal = Math.round(workTotal);
+    const totalPrice = Math.round(materialTotal + workTotal);
 
     console.log("\n✅ [STEP 3] Totals calculated");
     console.log("  ├─ Material Total:", materialTotal);

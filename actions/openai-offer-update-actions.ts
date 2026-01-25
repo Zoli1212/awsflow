@@ -343,32 +343,32 @@ Adj vissza JSON formátumban:
       const quantity = item.quantity || 1;
       const laborCost = item.laborCost || 0;
       const materialCost = item.materialCost || 0;
-      const workTotal = laborCost * quantity;
-      const materialTotal = materialCost * quantity;
-      const totalPrice = workTotal + materialTotal;
+      const workTotal = Math.round(laborCost * quantity);
+      const materialTotal = Math.round(materialCost * quantity);
+      const totalPrice = Math.round(workTotal + materialTotal);
 
       return {
         new: true,
         name: `${item.task}${item.customTask ? " !" : ""}`,
         unit: item.unit || "db",
         quantity: quantity,
-        unitPrice: laborCost,
+        unitPrice: Math.round(laborCost),
         workTotal: workTotal,
         totalPrice: totalPrice,
         materialTotal: materialTotal,
-        materialUnitPrice: materialCost,
+        materialUnitPrice: Math.round(materialCost),
       };
     });
 
-    const workTotalCalc = finalItems.reduce(
+    const workTotalCalc = Math.round(finalItems.reduce(
       (sum: number, item: any) => sum + (item.workTotal || 0),
       0
-    );
-    const materialTotalCalc = finalItems.reduce(
+    ));
+    const materialTotalCalc = Math.round(finalItems.reduce(
       (sum: number, item: any) => sum + (item.materialTotal || 0),
       0
-    );
-    const totalPrice = workTotalCalc + materialTotalCalc;
+    ));
+    const totalPrice = Math.round(workTotalCalc + materialTotalCalc);
 
     console.log("  ├─ Material Total:", materialTotalCalc);
     console.log("  ├─ Work Total:", workTotalCalc);

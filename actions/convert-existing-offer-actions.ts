@@ -140,6 +140,10 @@ export async function convertExistingOfferToMyWork(params: ConvertOfferParams) {
       calculatedWorkTotal += item.workTotal || 0;
     });
 
+    // Kerekítjük az összesítőket
+    calculatedMaterialTotal = Math.round(calculatedMaterialTotal);
+    calculatedWorkTotal = Math.round(calculatedWorkTotal);
+
     console.log(`  ├─ Calculated materialTotal: ${calculatedMaterialTotal}`);
     console.log(`  ├─ Calculated workTotal: ${calculatedWorkTotal}`);
     console.log(`  └─ Total: ${calculatedMaterialTotal + calculatedWorkTotal}`);
@@ -150,7 +154,7 @@ export async function convertExistingOfferToMyWork(params: ConvertOfferParams) {
         status: "draft",
         requirementId: requirement.id,
         tenantEmail,
-        totalPrice: params.totalPrice || 0,
+        totalPrice: Math.round(params.totalPrice || 0),
         materialTotal: calculatedMaterialTotal,
         workTotal: calculatedWorkTotal,
         description: params.description || "",

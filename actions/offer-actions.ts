@@ -68,28 +68,28 @@ async function getOfferItemPrice(
       }
     }
 
-    // Újraszámolt totálok
-    const workTotal = quantity * laborCost;
-    const materialTotal = quantity * materialCost;
-    const totalPrice = workTotal + materialTotal;
+    // Újraszámolt totálok - kerekítve
+    const workTotal = Math.round(quantity * laborCost);
+    const materialTotal = Math.round(quantity * materialCost);
+    const totalPrice = Math.round(workTotal + materialTotal);
 
     return {
-      laborCost,
-      materialCost,
+      laborCost: Math.round(laborCost),
+      materialCost: Math.round(materialCost),
       workTotal,
       materialTotal,
       totalPrice,
     };
   } catch (error) {
     console.error("Error looking up price for task:", task, error);
-    // Fallback: eredeti árak + újraszámolt totálok
-    const workTotal = quantity * originalLaborCost;
-    const materialTotal = quantity * originalMaterialCost;
-    const totalPrice = workTotal + materialTotal;
+    // Fallback: eredeti árak + újraszámolt totálok - kerekítve
+    const workTotal = Math.round(quantity * originalLaborCost);
+    const materialTotal = Math.round(quantity * originalMaterialCost);
+    const totalPrice = Math.round(workTotal + materialTotal);
 
     return {
-      laborCost: originalLaborCost,
-      materialCost: originalMaterialCost,
+      laborCost: Math.round(originalLaborCost),
+      materialCost: Math.round(originalMaterialCost),
       workTotal,
       materialTotal,
       totalPrice,
@@ -324,15 +324,15 @@ export async function saveOfferWithRequirements(data: SaveOfferData) {
               materialCost = globalPrice.materialCost;
             }
 
-            // Újraszámolt totálok
-            const workTotal = quantity * laborCost;
-            const materialTotal = quantity * materialCost;
-            const totalPrice = workTotal + materialTotal;
+            // Újraszámolt totálok - kerekítve
+            const workTotal = Math.round(quantity * laborCost);
+            const materialTotal = Math.round(quantity * materialCost);
+            const totalPrice = Math.round(workTotal + materialTotal);
 
             return {
               ...item,
-              unitPrice: laborCost.toString(),
-              materialUnitPrice: materialCost.toString(),
+              unitPrice: Math.round(laborCost).toString(),
+              materialUnitPrice: Math.round(materialCost).toString(),
               workTotal: workTotal.toString(),
               materialTotal: materialTotal.toString(),
               totalPrice: totalPrice.toString(),
@@ -364,9 +364,9 @@ export async function saveOfferWithRequirements(data: SaveOfferData) {
             { material: 0, work: 0, total: 0 }
           );
 
-          calculatedMaterialTotal = totals.material;
-          calculatedWorkTotal = totals.work;
-          calculatedTotalPrice = totals.total;
+          calculatedMaterialTotal = Math.round(totals.material);
+          calculatedWorkTotal = Math.round(totals.work);
+          calculatedTotalPrice = Math.round(totals.total);
 
           console.log("Calculated totals from items:", {
             materialTotal: calculatedMaterialTotal,
@@ -934,13 +934,13 @@ export async function getOfferById(id: number) {
     // Parse items and notes if they exist
     const items = ((offer.items as any) || []).map((item: any) => {
       const quantity = parseFloat(item.quantity) || 0;
-      const unitPrice = parseFloat(item.unitPrice) || 0; // This is work unit price
-      const materialUnitPrice = parseFloat(item.materialUnitPrice) || 0;
+      const unitPrice = Math.round(parseFloat(item.unitPrice) || 0); // This is work unit price
+      const materialUnitPrice = Math.round(parseFloat(item.materialUnitPrice) || 0);
 
-      // Calculate totals, ensuring they are numbers
-      const workTotal = quantity * unitPrice;
-      const materialTotal = quantity * materialUnitPrice;
-      const totalPrice = workTotal + materialTotal;
+      // Calculate totals, ensuring they are numbers - kerekítve
+      const workTotal = Math.round(quantity * unitPrice);
+      const materialTotal = Math.round(quantity * materialUnitPrice);
+      const totalPrice = Math.round(workTotal + materialTotal);
 
       return {
         ...item,
@@ -1067,12 +1067,13 @@ export async function updateOfferItems(offerId: number, items: OfferItem[]) {
               description: `${newItem.name} - munkaelem`,
               quantity: quantityNum,
               unit: newItem.unit,
-              unitPrice: unitPriceNum,
-              materialUnitPrice: materialUnitPriceNum,
-              workTotal: quantityNum * unitPriceNum,
-              materialTotal: quantityNum * materialUnitPriceNum,
-              totalPrice:
-                quantityNum * unitPriceNum + quantityNum * materialUnitPriceNum,
+              unitPrice: Math.round(unitPriceNum),
+              materialUnitPrice: Math.round(materialUnitPriceNum),
+              workTotal: Math.round(quantityNum * unitPriceNum),
+              materialTotal: Math.round(quantityNum * materialUnitPriceNum),
+              totalPrice: Math.round(
+                quantityNum * unitPriceNum + quantityNum * materialUnitPriceNum
+              ),
               tenantEmail: userEmail,
               progress: 0,
               completedQuantity: 0,
@@ -1136,9 +1137,9 @@ export async function updateOfferItems(offerId: number, items: OfferItem[]) {
       },
       data: {
         items: processedItems as unknown as Prisma.InputJsonValue, // Type-safe JSON serialization
-        totalPrice: grandTotal,
-        materialTotal: parseFloat(materialTotal.toFixed(2)),
-        workTotal: parseFloat(workTotal.toFixed(2)),
+        totalPrice: Math.round(grandTotal),
+        materialTotal: Math.round(materialTotal),
+        workTotal: Math.round(workTotal),
         updatedAt: new Date(),
       },
       select: {
