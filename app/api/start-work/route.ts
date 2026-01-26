@@ -277,7 +277,7 @@ export async function POST(req: NextRequest) {
         for (const field of fieldsToCheck) {
           if (String(work[field]) !== String(offer[field])) {
             correctedFields.push(`${field}: "${work[field]}" → "${offer[field]}"`);
-            (work as any)[field] = offer[field];
+            (work as Record<string, unknown>)[field] = offer[field];
           }
         }
 
