@@ -21,15 +21,22 @@ COPY --from=deps /app/node_modules/.prisma ./node_modules/.prisma
 # Build args for env vars needed at build time
 ARG DATABASE_URL
 ARG NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY
-ARG OPENAI_API_KEY
-ARG RESEND_API_KEY
-ARG GEMINI_API_KEY
 
+# Set all env vars with placeholders for build time
+# Runtime values come from ECS Task Definition
 ENV DATABASE_URL=${DATABASE_URL}
 ENV NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}
-ENV OPENAI_API_KEY=${OPENAI_API_KEY:-placeholder}
-ENV RESEND_API_KEY=${RESEND_API_KEY:-placeholder}
-ENV GEMINI_API_KEY=${GEMINI_API_KEY:-placeholder}
+ENV OPENAI_API_KEY=placeholder
+ENV RESEND_API_KEY=placeholder
+ENV GEMINI_API_KEY=placeholder
+ENV IMAGEKIT_PRIVATE_KEY=placeholder
+ENV IMAGEKIT_PUBLIC_KEY=placeholder
+ENV IMAGEKIT_ENDPOINT_URL=https://placeholder.com
+ENV TAVILY_API_KEY=placeholder
+ENV GOOGLE_CLIENT_ID=placeholder
+ENV GOOGLE_CLIENT_SECRET=placeholder
+ENV STRIPE_SECRET_KEY=placeholder
+ENV CLERK_SECRET_KEY=placeholder
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN npm run build
